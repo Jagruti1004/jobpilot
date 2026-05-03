@@ -14,4 +14,33 @@ model User {
   name      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  resume Resume?
+}
+
+model Resume {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Contact fields the AI extracts
+  name      String?
+  email     String?
+  phone     String?
+  location  String?
+  linkedin  String?
+  github    String?
+  portfolio String?
+
+  // Flexible JSON fields — AI returns nested arrays/objects of varying shapes
+  skills     Json?
+  experience Json?
+  education  Json?
+  projects   Json?
+
+  // Original PDF text — kept so we can re-parse later if AI improves
+  rawText String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
