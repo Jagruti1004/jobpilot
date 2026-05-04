@@ -1,12 +1,9 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 
-const apiKey = process.env.GEMINI_API_KEY;
-const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const apiKey = process.env.GROQ_API_KEY;
+const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
-// Strict JSON schema we want Gemini to fill in
-const RESUME_SCHEMA_PROMPT = `
-You are a resume parser. Extract the resume data from the text below into this exact JSON shape.
-Return ONLY valid JSON, no markdown, no explanation.
+const SYSTEM_PROMPT = `You are a resume parser. Extract resume data into JSON matching this exact shape:
 
 {
   "name": "string or null",
@@ -22,61 +19,50 @@ Return ONLY valid JSON, no markdown, no explanation.
   "projects": [{ "name": "", "description": "", "link": "" }]
 }
 
-If a field is missing in the resume, use null (for strings) or [] (for arrays). Do not invent data.
+Rules:
+- Use null for missing string fields, [] for missing arrays.
+- Do not invent data.
+- Return only valid JSON, no markdown, no explanation.`;
 
-Resume text:
----
-`;
-
-// Mock fallback — used when no API key is set
-const buildMockResponse = (rawText) => ({
-  name: 'Jane Doe',
-  email: 'jane.doe@example.com',
-  phone: '+1 555-123-4567',
-  location: 'San Francisco, CA',
-  linkedin: 'https://linkedin.com/in/janedoe',
-  github: 'https://github.com/janedoe',
+// Empty fallback — used when no API key or AI call fails
+// User can fill in manually via the edit form
+const buildEmptyResponse = () => ({
+  name: null,
+  email: null,
+  phone: null,
+  location: null,
+  linkedin: null,
+  github: null,
   portfolio: null,
-  skills: ['JavaScript', 'React', 'Node.js', 'PostgreSQL', 'TypeScript'],
-  experience: [
-    {
-      company: 'Acme Corp',
-      role: 'Senior Software Engineer',
-      duration: '2022 - Present',
-      description: 'Led frontend redesign; mentored 3 junior engineers.',
-    },
-  ],
-  education: [{ school: 'UC Berkeley', degree: 'B.S. Computer Science', year: '2020' }],
-  projects: [
-    {
-      name: 'JobPilot',
-      description: 'AI-powered job application tracker',
-      link: 'https://github.com/janedoe/jobpilot',
-    },
-  ],
-  _mock: true, // Flag so frontend can show "AI is in mock mode"
-  _rawTextLength: rawText.length,
+  skills: [],
+  experience: [],
+  education: [],
+  projects: [],
+  _mock: true, // Still flag it so frontend can show "AI unavailable" notice
 });
 
 export const parseResumeWithAI = async (rawText) => {
-  // No key? Return mock immediately.
   if (!apiKey) {
-    console.warn('[AI] No GEMINI_API_KEY set, returning mock data');
-    return buildMockResponse(rawText);
+    console.warn('[AI] No GROQ_API_KEY set, returning empty resume');
+    return buildEmptyResponse();
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const aiModel = genAI.getGenerativeModel({
+    const groq = new Groq({ apiKey });
+    const completion = await groq.chat.completions.create({
       model,
-      generationConfig: { responseMimeType: 'application/json' }, // Forces JSON output
+      response_format: { type: 'json_object' }, // Forces valid JSON output
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: `Resume text:\n---\n${rawText}` },
+      ],
     });
 
-    const result = await aiModel.generateContent(RESUME_SCHEMA_PROMPT + rawText);
-    const responseText = result.response.text();
-    return JSON.parse(responseText);
+    const content = completion.choices[0]?.message?.content;
+    if (!content) throw new Error('Empty response from Groq');
+    return JSON.parse(content);
   } catch (err) {
-    console.error('[AI] Gemini call failed, falling back to mock:', err.message);
-    return buildMockResponse(rawText);
+    console.error('[AI] Groq call failed, falling back to empty:', err.message);
+    return buildEmptyResponse();
   }
 };
