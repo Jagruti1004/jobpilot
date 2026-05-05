@@ -1,8 +1,9 @@
-import 'dotenv/config'; // Loads .env into process.env — must be first
+import 'dotenv/config';
 import { app } from './app.js';
 
 const PORT = Number(process.env.PORT) || 4000;
 
-app.listen(PORT, () => {
-  console.log(`🚀 JobPilot API running on http://localhost:${PORT}`);
+// Bind to 0.0.0.0 in production (Render requires this)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 JobPilot API running on port ${PORT}`);
 });
