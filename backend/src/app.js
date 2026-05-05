@@ -3,6 +3,7 @@ import cors from 'cors';
 import { authRoutes } from './routes/authRoutes.js';
 import { resumeRoutes } from './routes/resumeRoutes.js';
 import { applicationRoutes } from './routes/applicationRoutes.js';
+import { analysisRoutes } from './routes/analysisRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 export const app = express();
@@ -25,7 +26,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/applications', applicationRoutes);
-// app.use('/api/analysis', analysisRoutes);
+app.use('/api/analysis', analysisRoutes);
 
 // Must be registered LAST — catches all errors thrown upstream
 app.use(errorHandler);

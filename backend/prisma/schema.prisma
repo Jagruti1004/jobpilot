@@ -17,6 +17,7 @@ model User {
 
   resume       Resume?
   applications Application[]
+  analysis     Analysis?     // NEW: latest analysis report
 }
 
 model Resume {
@@ -24,7 +25,6 @@ model Resume {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Contact fields the AI extracts
   name      String?
   email     String?
   phone     String?
@@ -33,27 +33,24 @@ model Resume {
   github    String?
   portfolio String?
 
-  // Flexible JSON fields — AI returns nested arrays/objects of varying shapes
   skills     Json?
   experience Json?
   education  Json?
   projects   Json?
 
-  // Original PDF text — kept so we can re-parse later if AI improves
   rawText String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// Each status represents an actual user action / transition
 enum ApplicationStatus {
-  SAVED          // Bookmarked, not yet applied
-  APPLIED        // Submitted, awaiting reply
-  IN_CONTACT     // Recruiter messaged/called
-  INTERVIEWING   // Active rounds (interviews, assessments, tests)
-  REJECTED       // Pipeline ended unsuccessfully
-  OFFER          // Received an offer
+  SAVED
+  APPLIED
+  IN_CONTACT
+  INTERVIEWING
+  REJECTED
+  OFFER
 }
 
 model Application {
@@ -78,4 +75,22 @@ model Application {
   updatedAt DateTime @updatedAt
 
   @@index([userId, status])
+}
+
+// NEW MODEL — caches the latest AI-generated report
+model Analysis {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Whole report stored as JSON — flexible to evolve without migrations
+  report Json
+
+  // Quick stats we compute outside AI (also useful for the UI)
+  callbackRate    Float?  // applied → got_callback ratio
+  totalApplied    Int?
+  totalCallbacks  Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
