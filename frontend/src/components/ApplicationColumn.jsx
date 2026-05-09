@@ -69,12 +69,19 @@ export const ApplicationColumn = ({ status, label, applications, onCardDeleted }
           items={applications.map((a) => a.id)}
           strategy={verticalListSortingStrategy}
         >
-          {applications.length === 0 ? (
-            <div style={{ padding: 24, textAlign: 'center' }}>
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={<span style={{ fontSize: 12, color: '#999' }}>No applications</span>}
-              />
+{applications.length === 0 ? (
+            <div
+              style={{
+                padding: 24,
+                textAlign: 'center',
+                minHeight: 160,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                pointerEvents: 'none', // Let drops pass through to the parent droppable
+              }}
+            >
+              <span style={{ fontSize: 12, color: '#bbb' }}>Drop here</span>
             </div>
           ) : (
             applications.map((app) => (
